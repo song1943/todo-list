@@ -89,11 +89,24 @@
       color: var(--text-primary);
       transition: all 0.2s ease;
       outline: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      touch-action: manipulation;
+      cursor: text;
+      z-index: 10;
+      position: relative;
     }
 
     #taskInput:focus {
       border-color: var(--accent-color);
       box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+      transform: translateY(0);
+    }
+
+    /* 修复iOS上的点击问题 */
+    #taskInput:active {
+      transform: scale(1);
     }
 
     /* 按钮样式优化 */
@@ -392,11 +405,14 @@
         type="text" 
         id="taskInput"
         placeholder="请输入新任务..."
-        autofocus
+        autocapitalize="sentences"
+        autocorrect="on"
+        spellcheck="true"
+        tabindex="1"
       >
       <div class="btn-group">
-        <button class="btn-primary" onclick="addTask()">添加任务</button>
-        <button class="btn-success" onclick="showHistory()">历史任务</button>
+        <button class="btn-primary" onclick="addTask()" tabindex="2">添加任务</button>
+        <button class="btn-success" onclick="showHistory()" tabindex="3">历史任务</button>
       </div>
     </div>
     
