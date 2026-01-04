@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#007bff">
+  <title>待办事项清单</title>
+  <style>
+    /* CSS 变量定义，支持深色模式 */
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --bg-input: #ffffff;
+      --text-primary: #1a1a1a;
+      --text-secondary: #666666;
+      --border-color: #e0e0e0;
+      --accent-color: #007bff;
+      --accent-hover: #0056b3;
+      --success-color: #28a745;
+      --danger-color: #dc3545;
+      --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      --radius: 12px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1c1c1e;
+        --bg-secondary: #2c2c2e;
+        --bg-input: #2c2c2e;
+        --text-primary: #ffffff;
+        --text-secondary: #a0a0a0;
+        --border-color: #3a3a3c;
+        --accent-color: #007aff;
+        --accent-hover: #0056b3;
+        --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      font-size: 17px;
+      line-height: 1.5;
+      padding: 20px;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      text-align: center;
+      color: var(--text-primary);
+    }
+
+    .container {
+      max-width: 100%;
+      margin: 0 auto;
+    }
+
+    /* 输入区域优化 */
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+      background: var(--bg-secondary);
+      padding: 20px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    #taskInput {
+      width: 100%;
+      padding: 16px 16px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      font-size: 17px;
+      color: var(--text-primary);
+      transition: all 0.2s ease;
+      outline: none;
+    }
+
+    #taskInput:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+
+    /* 按钮样式优化 */
+    .btn-group {
+      display: flex;
+      gap: 12px;
+    }
+
+    button {
+      flex: 1;
+      padding: 16px 20px;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background: var(--accent-color);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-success {
+      background: var(--success-color);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #218838;
+    }
+
+    /* 任务列表样式 */
+    #taskList {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      gap: 12px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 滑动删除容器 */
+    .swipe-container {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      padding: 20px;
+      background: var(--bg-secondary);
+      transition: all 0.2s ease;
+      position: relative;
+      z-index: 2;
+      transform: translateX(0);
+      cursor: pointer;
+    }
+
+    .task-item:hover {
+      transform: translateY(-1px);
+    }
+
+    .task-item.completed {
+      opacity: 0.6;
+    }
+
+    /* 复选框优化 */
+    .task-checkbox {
+      width: 24px;
+      height: 24px;
+      margin-right: 16px;
+      cursor: pointer;
+      accent-color: var(--accent-color);
+      z-index: 3;
+      position: relative;
+    }
+
+    /* 任务文本样式 */
+    .task-text {
+      flex: 1;
+      font-size: 17px;
+      color: var(--text-primary);
+      word-break: break-word;
+      line-height: 1.4;
+      z-index: 3;
+      position: relative;
+    }
+
+    .task-item.completed .task-text {
+      text-decoration: line-through;
+      color: var(--text-secondary);
+    }
+
+    /* 任务时间样式 */
+    .task-time {
+      display: block;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    /* 滑动删除按钮 */
+    .delete-btn {
+      background: var(--danger-color);
+      color: white;
+      padding: 10px 16px;
+      font-size: 14px;
+      min-width: 100px;
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 1;
+      height: 100%;
+      border-radius: 0;
+    }
+
+    .delete-btn:hover {
+      background: #c82333;
+    }
+
+    /* 历史记录弹窗样式 */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-content {
+      background: var(--bg-primary);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      width: 90%;
+      max-width: 400px;
+      max-height: 80vh;
+      overflow: hidden;
+      animation: slideUp 0.2s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-secondary);
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      flex: none;
+    }
+
+    .close-btn:hover {
+      background: var(--bg-secondary);
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      max-height: calc(80vh - 120px);
+    }
+
+    /* 历史记录表格优化 */
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .history-table th {
+      text-align: left;
+      padding: 12px 0;
+      border-bottom: 2px solid var(--border-color);
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .history-table td {
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-primary);
+      vertical-align: top;
+    }
+
+    .history-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .history-date {
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    /* 空状态提示 */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-secondary);
+      font-size: 16px;
+    }
+
+    /* 适配深色模式 */
+    @media (prefers-color-scheme: dark) {
+      /* 深色模式样式已通过CSS变量实现 */
+    }
+
+    /* 横屏适配 */
+    @media (orientation: landscape) {
+      .input-group {
+        flex-direction: row;
+        align-items: center;
+      }
+      
+      #taskInput {
+        flex: 1;
+      }
+      
+      .btn-group {
+        flex: none;
+      }
+      
+      button {
+        padding: 14px 18px;
+      }
+    }
+
+    /* 底部安全区域适配 */
+    @media (max-height: 700px) {
+      body {
+        padding-bottom: 34px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📝 待办事项</h1>
+    
+    <div class="input-group">
+      <input 
+        type="text" 
+        id="taskInput"
+        placeholder="请输入新任务..."
+        autofocus
+      >
+      <div class="btn-group">
+        <button class="btn-primary" onclick="addTask()">添加任务</button>
+        <button class="btn-success" onclick="showHistory()">历史任务</button>
+      </div>
+    </div>
+    
+    <ul id="taskList"></ul>
+  </div>
+
+  <script>
+    // 初始化加载任务
+    let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+    renderTasks();
+    
+    function saveTasks() {
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+      renderTasks();
+    }
+
+    // 渲染任务列表
+    function renderTasks() {
+      const today = new Date();
+      const visibleTasks = tasks.filter(t => {
+        const taskDate = new Date(t.createdAt);
+        return (
+          taskDate.getFullYear() === today.getFullYear() &&
+          taskDate.getMonth() === today.getMonth() &&
+          taskDate.getDate() === today.getDate()
+        );
+      });
+      
+      // 分组排序逻辑
+      const pendingTasks = visibleTasks
+        .filter(t => !t.completed)
+        .sort((a, b) => a.text.localeCompare(b.text));
+        
+      const completedTasks = visibleTasks
+        .filter(t => t.completed)
+        .sort((a, b) => a.text.localeCompare(b.text));
+      
+      const list = document.getElementById('taskList');
+      
+      if (pendingTasks.length === 0 && completedTasks.length === 0) {
+        list.innerHTML = '<div class="empty-state">今天还没有任务，添加一个开始吧！</div>';
+        return;
+      }
+      
+      list.innerHTML = [
+        ...pendingTasks.map(task => createTaskItem(task)),
+        ...completedTasks.map(task => createTaskItem(task))
+      ].join('');
+    }
+    
+    function createTaskItem(task) {
+      const index = tasks.findIndex(t => t === task);
+      return `
+        <li class="swipe-container">
+          <button class="delete-btn" onclick="deleteTask(${index})">删除</button>
+          <div class="task-item ${task.completed ? 'completed' : ''}">
+            <input 
+              type="checkbox" 
+              class="task-checkbox"
+              ${task.completed ? 'checked' : ''}
+              onchange="toggleComplete(${index})"
+            >
+            <div class="task-text">
+              ${task.text}
+              <span class="task-time">创建：${new Date(task.createdAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
+              ${task.completed ? `<span class="task-time">完成：${new Date(task.completedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>` : ''}
+            </div>
+          </div>
+        </li>
+      `;
+    }
+
+    // 添加任务
+    function addTask() {
+      const input = document.getElementById('taskInput');
+      const text = input.value.trim();
+      if (text) {
+        const newTask = Object.freeze({
+          text,
+          completed: false,
+          createdAt: new Date().toISOString()
+        });
+        tasks.push(newTask);
+        input.value = '';
+        saveTasks();
+      }
+    }
+
+    // 标记任务完成/未完成
+    function toggleComplete(index) {
+      const updatedTask = Object.freeze({
+        ...tasks[index],
+        completed: !tasks[index].completed,
+        completedAt: new Date().toISOString()
+      });
+      tasks.splice(index, 1, updatedTask);
+      saveTasks();
+    }
+
+    // 删除任务
+    function deleteTask(index) {
+      if (confirm('确定要删除这个任务吗？')) {
+        tasks.splice(index, 1);
+        saveTasks();
+      }
+    }
+
+    // 显示历史任务
+    function showHistory() {
+      const historyDialog = document.createElement('div');
+      historyDialog.className = 'modal';
+      
+      const sortedTasks = tasks
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      historyDialog.innerHTML = `
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 class="modal-title">历史任务</h3>
+            <button class="close-btn" onclick="this.closest('.modal').remove()">×</button>
+          </div>
+          <div class="modal-body">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>任务内容</th>
+                  <th>创建时间</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${sortedTasks.map(t => `
+                  <tr>
+                    <td>${t.text}</td>
+                    <td>
+                      <div>${new Date(t.createdAt).toLocaleDateString()}</div>
+                      <div class="history-date">${new Date(t.createdAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</div>
+                    </td>
+                    <td>
+                      <div style="color: ${t.completed ? '#28a745' : '#666666'}">
+                        ${t.completed ? '已完成' : '未完成'}
+                      </div>
+                      ${t.completed ? `<div class="history-date">${new Date(t.completedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</div>` : ''}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            ${sortedTasks.length === 0 ? '<div class="empty-state">还没有历史任务</div>' : ''}
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(historyDialog);
+    }
+
+    // 添加键盘事件支持
+    document.getElementById('taskInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        addTask();
+      }
+    });
+
+    // 滑动删除功能实现
+    document.addEventListener('DOMContentLoaded', function() {
+      let startX = 0;
+      let currentX = 0;
+      let isDragging = false;
+      let currentTaskItem = null;
+      let deleteButtonWidth = 100;
+
+      // 触摸开始事件
+      document.addEventListener('touchstart', function(e) {
+        const taskItem = e.target.closest('.task-item');
+        if (taskItem) {
+          isDragging = true;
+          currentTaskItem = taskItem;
+          startX = e.touches[0].clientX;
+          currentX = startX;
+        }
+      }, { passive: true });
+
+      // 触摸移动事件
+      document.addEventListener('touchmove', function(e) {
+        if (!isDragging || !currentTaskItem) return;
+
+        const touchX = e.touches[0].clientX;
+        const deltaX = touchX - startX;
+
+        // 只允许向左滑动
+        if (deltaX < 0) {
+          let translateX = Math.max(deltaX, -deleteButtonWidth);
+          currentTaskItem.style.transform = `translateX(${translateX}px)`;
+        }
+      }, { passive: true });
+
+      // 触摸结束事件
+      document.addEventListener('touchend', function() {
+        if (!isDragging || !currentTaskItem) return;
+
+        const deltaX = currentX - startX;
+        
+        // 如果滑动距离超过删除按钮宽度的一半，则显示删除按钮，否则恢复
+        if (Math.abs(deltaX) > deleteButtonWidth / 2) {
+          currentTaskItem.style.transform = `translateX(-${deleteButtonWidth}px)`;
+        } else {
+          currentTaskItem.style.transform = 'translateX(0)';
+        }
+
+        isDragging = false;
+        currentTaskItem = null;
+      });
+
+      // 点击空白处关闭滑动的任务项
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('.swipe-container')) {
+          const openTaskItems = document.querySelectorAll('.task-item');
+          openTaskItems.forEach(item => {
+            item.style.transform = 'translateX(0)';
+          });
+        }
+      });
+    });
+  </script>
+</body>
+</html>
